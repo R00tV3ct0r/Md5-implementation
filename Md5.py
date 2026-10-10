@@ -42,9 +42,6 @@ def md5(message):
     C = 0x98badcfe   
     D = 0x10325476  
 
-    # keep a copy of the original value
-    A0, B0, C0, D0 = A, B, C, D
-
     data = message.encode("utf-8")
     size = len(data) * 8 
 
@@ -55,40 +52,44 @@ def md5(message):
     data += b"\x00" * ((56 - len(data) % 64) % 64)
     data += size.to_bytes(8, "little")
 
-    # we create 16 group of 32 bit
-    M = [int.from_bytes(data[i:i+4], "little") for i in range(0, 64, 4)]
+    # now that the padding is done we process every 512 bit bloc
+    for offset in range(0, len(message), 64):
+        block = data[offset:offset + 64] # 64 = 512 bit
+        # we create 16 group of 32 bit
+        M = [int.from_bytes(block[i:i+4], "little") for i in range(0, 64, 4)]
 
-    for i in range(64):
-        # we calul the 4 round of MD5
-        # we calcul : rotate(F(B, C, D, i) + A + input + K[i]), s[i]) + B
-        if i < 16:
-            F = (B & C) | ((~B) & D)
-            B_prime = (rotate((F + A + M[i] + K[i]), s[i]) + B) & 0xFFFFFFFF
-        elif i >= 16 and i < 32:
-            j = (5 * i + 1) % 16
-            F = (D & B) | ((~D) & C)
-            B_prime = (rotate((F + A + M[j] + K[i]), s[i]) + B) & 0xFFFFFFFF  
-        elif i >= 32 and i < 48:
-            j = (3 * i + 5) % 16
-            F = B ^ C ^ D
+        # keep a copy of the original value to add it at the end
+        A0, B0, C0, D0 = A, B, C, D
+
+        for i in range(64):
+            # we calul the 4 round of MD5
+            # we calcul : rotate(F(B, C, D, i) + A + input + K[i]), s[i]) + B
+            if i < 16:
+                F = (B & C) | ((~B) & D)
+                j = i
+            elif i >= 16 and i < 32:
+                j = (5 * i + 1) % 16
+                F = (D & B) | ((~D) & C)
+            elif i >= 32 and i < 48:
+                j = (3 * i + 5) % 16
+                F = B ^ C ^ D
+            else:
+                j = (7 * i) % 16
+                F = C ^ (B | (~D))
+
+            A_prime = D
             B_prime = (rotate((F + A + M[j] + K[i]), s[i]) + B) & 0xFFFFFFFF
-        else:
-            j = (7 * i) % 16
-            F = C ^ (B | (~D))
-            B_prime = (rotate((F + A + M[j] + K[i]), s[i]) + B) & 0xFFFFFFFF
+            C_prime = B
+            D_prime = C
 
-        A_prime = D
-        C_prime = B
-        D_prime = C
+            # we update 
+            A, B, C, D = A_prime, B_prime, C_prime, D_prime
 
-        # we update 
-        A, B, C, D = A_prime, B_prime, C_prime, D_prime
-
-    # We add the original values
-    A = (A + A0) & 0xFFFFFFFF
-    B = (B + B0) & 0xFFFFFFFF
-    C = (C + C0) & 0xFFFFFFFF
-    D = (D + D0) & 0xFFFFFFFF
+        # We add the original values
+        A = (A + A0) & 0xFFFFFFFF
+        B = (B + B0) & 0xFFFFFFFF
+        C = (C + C0) & 0xFFFFFFFF
+        D = (D + D0) & 0xFFFFFFFF
 
     # MD5 outputs is in little-endian !!!
     return A.to_bytes(4, "little").hex() + B.to_bytes(4, "little").hex() + C.to_bytes(4, "little").hex() + D.to_bytes(4, "little").hex()
@@ -96,5 +97,6 @@ def md5(message):
 
 if __name__ == "__main__":
     message = "Hello World!"
+    print(message)
     hash = md5(message)
     print(hash)
