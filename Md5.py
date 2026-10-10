@@ -55,47 +55,30 @@ s = [
 
 def rotate(x, n):
     x &= 0xFFFFFFFF
-    return ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF
-
-def combine(A, B, C, D, i, input):
-    # we calcul : rotate(F(B, C, D, i) + A + input + K[i]), s[i]) + B
-    if 0 <= i <= 15:
-        F = (B & C) | ((~B) & D)
-    elif 16 <= i <= 31:
-        F = (D & B) | ((~D) & C) 
-    elif 32 <= i <= 47:
-        F = B ^ C ^ D
-    elif 48 <= i <= 64:
-        F = C ^ (B | (~D))
-
-    return (rotate((F + A + input + K[i]), s[i]) + B) & 0xFFFFFFFF
-     
+    return ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF     
 
 for i in range(64):
     # we calul the 4 round of MD5
+    # we calcul : rotate(F(B, C, D, i) + A + input + K[i]), s[i]) + B
     if i < 16:
-        A_prime = D
-        B_prime = combine(A, B, C, D, i, M[i])
-        C_prime = B
-        D_prime = C
+        F = (B & C) | ((~B) & D)
+        B_prime = (rotate((F + A + M[i] + K[i]), s[i]) + B) & 0xFFFFFFFF
     elif i >= 16 and i < 32:
         j = (5 * i + 1) % 16
-        A_prime = D
-        B_prime = combine(A, B, C, D, i, M[j])
-        C_prime = B
-        D_prime = C
+        F = (D & B) | ((~D) & C)
+        B_prime = (rotate((F + A + M[j] + K[i]), s[i]) + B) & 0xFFFFFFFF  
     elif i >= 32 and i < 48:
         j = (3 * i + 5) % 16
-        A_prime = D
-        B_prime = combine(A, B, C, D, i, M[j])
-        C_prime = B
-        D_prime = C
+        F = B ^ C ^ D
+        B_prime = (rotate((F + A + M[j] + K[i]), s[i]) + B) & 0xFFFFFFFF
     else:
         j = (7 * i) % 16
-        A_prime = D
-        B_prime = combine(A, B, C, D, i, M[j])
-        C_prime = B
-        D_prime = C
+        F = C ^ (B | (~D))
+        B_prime = (rotate((F + A + M[j] + K[i]), s[i]) + B) & 0xFFFFFFFF
+
+    A_prime = D
+    C_prime = B
+    D_prime = C
 
     # we update 
     A, B, C, D = A_prime, B_prime, C_prime, D_prime
