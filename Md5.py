@@ -2,7 +2,7 @@
 # https://www.youtube.com/watch?v=5MiMK45gkTY
 # https://en.wikipedia.org/wiki/MD5
 
-# table 
+# pre compute table 
 K = [
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
     0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -31,6 +31,7 @@ s = [
 ]
 
 def rotate(x, n):
+    # we use 0xFFFFFFFF to make sure that we keep only the first 32 bit 
     x &= 0xFFFFFFFF
     return ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF     
 
@@ -43,42 +44,45 @@ def md5(message):
     D = 0x10325476  
 
     data = message.encode("utf-8")
-    size = len(data) * 8 
+    original_size = len(data) * 8 
 
     # we add 1
     data += b"\x80"
 
     #we add some 0 until 512 - 64 bits (if the text is longueur than 512 bit we go to 1024 - 64 on we continue like that)
     data += b"\x00" * ((56 - len(data) % 64) % 64)
-    data += size.to_bytes(8, "little")
+    data += original_size.to_bytes(8, "little")
 
     # now that the padding is done we process every 512 bit bloc
     for offset in range(0, len(message), 64):
         block = data[offset:offset + 64] # 64 = 512 bit
-        # we create 16 group of 32 bit
+        # for heach block we create 16 group of 32 bit
         M = [int.from_bytes(block[i:i+4], "little") for i in range(0, 64, 4)]
 
         # keep a copy of the original value to add it at the end
         A0, B0, C0, D0 = A, B, C, D
 
-        for i in range(64):
+        for index in range(64):
             # we calul the 4 round of MD5
-            # we calcul : rotate(F(B, C, D, i) + A + input + K[i]), s[i]) + B
-            if i < 16:
+            # rotate(F(B, C, D, i) + A + input + K[i]), s[i]) + B
+            if 0 <= index <= 15:
                 F = (B & C) | ((~B) & D)
-                j = i
-            elif i >= 16 and i < 32:
-                j = (5 * i + 1) % 16
+                j = index
+            elif 16 <= index and index <= 31:
+                j = (5 * index + 1) % 16
                 F = (D & B) | ((~D) & C)
-            elif i >= 32 and i < 48:
-                j = (3 * i + 5) % 16
+            elif 32 <= index and index <= 47:
+                j = (3 * index + 5) % 16
                 F = B ^ C ^ D
-            else:
-                j = (7 * i) % 16
+            elif 48 <= index and index <= 64:
+                j = (7 * index) % 16
                 F = C ^ (B | (~D))
+            else:
+                return "ERROR : index out of range"
 
             A_prime = D
-            B_prime = (rotate((F + A + M[j] + K[i]), s[i]) + B) & 0xFFFFFFFF
+            # same think here & 0xFFFFFFFF make sure that we keep only the first 32 bit 
+            B_prime = (rotate((F + A + M[j] + K[index]), s[index]) + B) & 0xFFFFFFFF
             C_prime = B
             D_prime = C
 
@@ -86,6 +90,7 @@ def md5(message):
             A, B, C, D = A_prime, B_prime, C_prime, D_prime
 
         # We add the original values
+        # and same there with & 0xFFFFFFFF
         A = (A + A0) & 0xFFFFFFFF
         B = (B + B0) & 0xFFFFFFFF
         C = (C + C0) & 0xFFFFFFFF
@@ -97,6 +102,5 @@ def md5(message):
 
 if __name__ == "__main__":
     message = "Hello World!"
-    print(message)
     hash = md5(message)
     print(hash)
