@@ -2,6 +2,9 @@
 # https://www.youtube.com/watch?v=5MiMK45gkTY
 # https://en.wikipedia.org/wiki/MD5
 
+import argparse
+import sys
+
 # pre compute table 
 K = [
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
@@ -43,7 +46,14 @@ def md5(message):
     C = 0x98badcfe   
     D = 0x10325476  
 
-    data = message.encode("utf-8")
+    # we need to verify if message is a text or bytes from a file
+    if isinstance(message, str):
+        data = message.encode("utf-8")
+    elif isinstance(message, bytes):
+        data = message
+    else:
+        raise TypeError("message must be str or bytes")
+    
     original_size = len(data) * 8 
 
     # we add 1
@@ -54,7 +64,7 @@ def md5(message):
     data += original_size.to_bytes(8, "little")
 
     # now that the padding is done we process every 512 bit bloc
-    for offset in range(0, len(message), 64):
+    for offset in range(0, len(data), 64):
         block = data[offset:offset + 64] # 64 = 512 bit
         # for heach block we create 16 group of 32 bit
         M = [int.from_bytes(block[i:i+4], "little") for i in range(0, 64, 4)]
@@ -100,7 +110,30 @@ def md5(message):
     return A.to_bytes(4, "little").hex() + B.to_bytes(4, "little").hex() + C.to_bytes(4, "little").hex() + D.to_bytes(4, "little").hex()
 
 
+def main():
+    parser = argparse.ArgumentParser(
+        description="Calculate MD5 hashes"
+    )
+    # user can chose diffrent argument but not 2 in the same time
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    # Argument 
+    group.add_argument("-s", "--string", help="Calculate the MD5 hash of a string.")
+    group.add_argument("-f", "--file", help="Calculate the MD5 hash of a file.")
+    args = parser.parse_args()
+
+    if args.string is not None:
+        result = md5(args.string)
+        print(result)
+
+    elif args.file is not None:
+        # We use "rb" to read the bytes of the file
+        with open(args.file, "rb") as file:
+                data = file.read()
+
+        result = md5(data)
+        print(f"{result}  {args.file}")
+
+
 if __name__ == "__main__":
-    message = "Hello World!"
-    hash = md5(message)
-    print(hash)
+    main()
