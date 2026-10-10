@@ -2,7 +2,7 @@
 # https://www.youtube.com/watch?v=5MiMK45gkTY
 # https://en.wikipedia.org/wiki/MD5
 
-
+# table 
 K = [
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
     0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -22,6 +22,7 @@ K = [
     0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 ]
 
+# index 
 s = [
     7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
     5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
@@ -34,7 +35,7 @@ def rotate(x, n):
     return ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF     
 
 
-def md5(M):
+def md5(message):
     # Init
     A = 0x67452301   
     B = 0xefcdab89   
@@ -43,6 +44,19 @@ def md5(M):
 
     # keep a copy of the original value
     A0, B0, C0, D0 = A, B, C, D
+
+    data = message.encode("utf-8")
+    size = len(data) * 8 
+
+    # we add 1
+    data += b"\x80"
+
+    #we add some 0 until 512 - 64 bits (if the text is longueur than 512 bit we go to 1024 - 64 on we continue like that)
+    data += b"\x00" * ((56 - len(data) % 64) % 64)
+    data += size.to_bytes(8, "little")
+
+    # we create 16 group of 32 bit
+    M = [int.from_bytes(data[i:i+4], "little") for i in range(0, 64, 4)]
 
     for i in range(64):
         # we calul the 4 round of MD5
@@ -80,20 +94,7 @@ def md5(M):
     return A.to_bytes(4, "little").hex() + B.to_bytes(4, "little").hex() + C.to_bytes(4, "little").hex() + D.to_bytes(4, "little").hex()
 
 
-message = "Hello World!"
-data = message.encode("utf-8")
-
-size = len(data) * 8 
-
-# we add 1
-data += b"\x80"
-
-#we add some 0 until 512 - 64 bits (if the text is longueur than 512 bit we go to 1024 - 64 on we continue like that)
-data += b"\x00" * ((56 - len(data) % 64) % 64)
-data += size.to_bytes(8, "little")
-
-# we create 16 group of 32 bit
-M = [int.from_bytes(data[i:i+4], "little") for i in range(0, 64, 4)]
-
-hash = md5(M)
-print(hash)
+if __name__ == "__main__":
+    message = "Hello World!"
+    hash = md5(message)
+    print(hash)
