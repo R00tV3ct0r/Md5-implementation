@@ -153,23 +153,19 @@ def floyd_collision(bits=32):
         # Init variable
         # urandom generate byte so we need to divide by 8
         start = os.urandom(bits // 8)
-        turtle = f(start)
-        hare = f(f(start))
+        turtle, hare = f(start), f(f(start))
 
         # phase 1 : find a meeting point in the loop 
         while turtle != hare:
-            turtle = f(turtle)
-            hare = f(f(hare))
+            turtle, hare = f(turtle), f(f(hare))
 
         turtle = start
-        prec_t = None
-        prec_h = None
+        prec_t = prec_h = None
 
         # phase 2 :  find the start of the loop
         while turtle != hare:
             prec_t, prec_h = turtle, hare
-            turtle = f(turtle)
-            hare = f(hare)
+            turtle, hare = f(turtle), f(hare)
 
         # verify that the start was not in the loop 
         if prec_h != prec_t and f(prec_t) == f(prec_h):
